@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.openqa.selenium.JavascriptExecutor;
 
@@ -20,7 +21,19 @@ public class ExpenseUiTest {
     @BeforeAll
     public static void setupClass() {
         WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
+
+        ChromeOptions options = new ChromeOptions();
+        // Check if running in CI
+        String ciEnv = System.getenv("CI");
+        if ("true".equalsIgnoreCase(ciEnv)) {
+            options.addArguments("--headless=new");
+            options.addArguments("--disable-gpu");
+            options.addArguments("--no-sandbox");
+            options.addArguments("--disable-dev-shm-usage");
+            options.addArguments("--user-data-dir=/tmp/chrome-user-data-" + System.currentTimeMillis());
+        }
+
+        driver = new ChromeDriver(options);
     }
 
     @AfterAll
