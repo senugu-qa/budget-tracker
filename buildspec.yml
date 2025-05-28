@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11  # Use the Java version your project needs
+    commands:
+      - echo "Installing dependencies"
+      - curl -o allure-2.11.2.zip -L https://github.com/allure-framework/allure2/releases/download/2.11.2/allure-2.11.2.zip
+      - unzip allure-2.11.2.zip -d /home/codebuild/allure
+      - export PATH=$PATH:/home/codebuild/allure/allure-2.11.2/bin
+      - curl -sS https://get.sdkman.io | bash  # Install sdkman for managing tools (optional)
+      - source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk install maven
+      - mvn install -DskipTests # If you have dependencies or setup for Maven
+
+  pre_build:
+    commands:
+      - echo "Preparing for tests"
+
+  build:
+    commands:
+      - echo "Running tests with Maven"
+      - mvn clean test # Replace this with the command for your tests
+      - allure generate target/allure-results --clean -o target/allure-report
+
+  post_build:
+    commands:
+      - echo "Tests completed"
+      - allure open target/allure-report  # Optional: open the Allure report (but it won't work in CI environment)
+      - mvn surefire-report:report-only  # Generates reports (if needed)
+      - ls -l target/allure-results  # Check if allure results are being generated
+      - echo "AWS CodeBuild job completed"
+
+artifacts:
+  files:
+    - target/allure-report/**  # Store the Allure report as artifacts for later use
+    - target/surefire-reports/*.xml  # Store surefire reports
+  discard-paths: yes
+  base-directory: target/allure-report  # Only include Allure reports in final artifact

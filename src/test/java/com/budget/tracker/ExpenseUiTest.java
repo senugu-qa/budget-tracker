@@ -1,14 +1,20 @@
 package com.budget.tracker;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
+import io.qameta.allure.Allure;
 import org.junit.jupiter.api.*;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.openqa.selenium.JavascriptExecutor;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,6 +49,24 @@ public class ExpenseUiTest {
         }
     }
 
+    @RegisterExtension
+    TestWatcher watcher = new TestWatcher() {
+        @Override
+        public void testFailed(ExtensionContext context, Throwable cause) {
+            if (driver instanceof TakesScreenshot) {
+                try {
+                    TakesScreenshot ts = (TakesScreenshot) driver;
+                    File screenshot = ts.getScreenshotAs(OutputType.FILE);
+                    try (InputStream is = Files.newInputStream(screenshot.toPath())) {
+                        Allure.addAttachment("Screenshot - " + context.getDisplayName(), "image/png", is, ".png");
+                    }
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        }
+    };
+
     @Test
     public void testAddExpense() throws InterruptedException {
         driver.get("http://localhost:8080/");
@@ -62,5 +86,18 @@ public class ExpenseUiTest {
 
         WebElement expensesTable = driver.findElement(By.id("expense-table-body"));
         assertTrue(expensesTable.getText().contains("Test Lunch"));
+    }
+
+    @Test
+    public void testFailExample_UI() throws InterruptedException {
+        driver.get("http://localhost:8080/");
+        driver.findElement(By.id("amount")).sendKeys("-100");  // invalid negative amount
+        driver.findElement(By.xpath("//button[text()='Add Expense']")).click();
+
+        Thread.sleep(1000);  // wait for error message to show
+
+        // Now trigger failure to capture screenshot after error message is visible
+        Assertions.fail("Intentional failure after UI error displayed");
+
     }
 }
