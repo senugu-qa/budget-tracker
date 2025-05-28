@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Budget Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input, select { margin: 5px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px;}
+        th, td { border: 1px solid #ccc; padding: 8px; }
+    </style>
+</head>
+<body>
+<h1>Budget Tracker</h1>
+
+<form id="expense-form">
+    <input type="text" id="description" placeholder="Description" required />
+    <input type="number" step="0.01" id="amount" placeholder="Amount" required />
+    <input type="date" id="date" name="date" autocomplete="off" />
+    <input type="text" id="category" placeholder="Category" required />
+    <button type="submit">Add Expense</button>
+</form>
+
+<table>
+    <thead>
+    <tr>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Category</th>
+    </tr>
+    </thead>
+    <tbody id="expense-table-body"></tbody>
+</table>
+
+<script>
+    const expenseForm = document.getElementById('expense-form');
+    const expenseTableBody = document.getElementById('expense-table-body');
+
+    async function fetchExpenses() {
+      const res = await fetch('/expenses');
+      const expenses = await res.json();
+
+      expenseTableBody.innerHTML = '';
+      expenses.forEach(exp => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${exp.description}</td>
+          <td>${exp.amount.toFixed(2)}</td>
+          <td>${exp.date}</td>
+          <td>${exp.category}</td>
+        `;
+        expenseTableBody.appendChild(tr);
+      });
+    }
+
+    expenseForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const expense = {
+        description: document.getElementById('description').value,
+        amount: parseFloat(document.getElementById('amount').value),
+        date: document.getElementById('date').value,
+        category: document.getElementById('category').value
+      };
+
+      const res = await fetch('/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expense)
+      });
+
+      if (res.ok) {
+        expenseForm.reset();
+        fetchExpenses();
+      } else {
+        alert('Failed to add expense.');
+      }
+    });
+
+    // Initial load
+    fetchExpenses();
+</script>
+</body>
+</html>
